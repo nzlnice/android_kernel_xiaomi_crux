@@ -758,3 +758,5 @@ CONFIG_HAVE_EBPF_JIT=y
 CONFIG_BPF_LSM=y
 # CONFIG_BPF_PRELOAD is not set
 CONFIG_LSM="lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmour,bpf"
+CONFIG_RMNET_PERF=y
+CONFIG_RMNET_SHS=y
