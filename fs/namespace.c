@@ -42,6 +42,8 @@ extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
 
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 
+#define CL_COPY_MNT_NS BIT(25) /* used by copy_mnt_ns() */
+
 /* Maximum number of mounts in a mount namespace */
 unsigned int sysctl_mount_max __read_mostly = 100000;
 
@@ -1271,7 +1273,7 @@ static struct mount *clone_mnt(struct mount *old, struct dentry *root,
 		mnt = susfs_alloc_non_unshare_ksu_vfsmnt(old->mnt_devname);
 		goto bypass_orig_flow;
 	}
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#endif
 	mnt = alloc_vfsmnt(old->mnt_devname);
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 bypass_orig_flow:
