@@ -49,7 +49,7 @@
 #define SCM_DLOAD_FULLDUMP		0x10
 #define SCM_EDLOAD_MODE			0x01
 #define SCM_DLOAD_CMD			0x10
-#define SCM_DLOAD_MINIDUMP		0x80
+#define SCM_DLOAD_MINIDUMP		0x20
 #define SCM_DLOAD_BOTHDUMPS	(SCM_DLOAD_MINIDUMP | SCM_DLOAD_FULLDUMP)
 
 static int restart_mode;
@@ -90,7 +90,7 @@ static struct notifier_block panic_blk = {
 #endif
 
 static struct kobject dload_kobj;
-static int dload_type = SCM_DLOAD_BOTHDUMPS;
+static int dload_type = SCM_DLOAD_FULLDUMP;
 static void *dload_mode_addr;
 static void *dload_type_addr;
 static bool dload_mode_enabled;
@@ -320,9 +320,7 @@ static void msm_restart_prepare(const char *cmd)
 	else
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
 
-	if (in_panic) {
-		qpnp_pon_set_restart_reason(PON_RESTART_REASON_PANIC);
-	} else if (cmd != NULL) {
+	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_BOOTLOADER);
