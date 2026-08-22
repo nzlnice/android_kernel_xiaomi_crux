@@ -690,6 +690,17 @@
 			label = "cont_splash_region";
 		};
 
+	ramoops: ramoops@9fe00000 {
+		compatible = "ramoops";
+		reg = <0x0 0x9fe00000 0x0 0x00200000>;  /* 2MB 总大小 (0x200000) */
+		record-size = <0x80000>;                  /* 512KB: 崩溃转储 (dmesg-ramoops) */
+		console-size = <0x80000>;                 /* 512KB: 内核控制台 (console-ramoops) */
+		pmsg-size = <0x100000>;                   /* 1024KB (1MB): 用户空间日志 (pmsg-ramoops) */
+		ecc-size = <0>;
+		max-reason = <4>;
+		no-map;                                   /* 必须保留 */
+	};
+		
 		adsp_mem: adsp_region {
 			compatible = "shared-dma-pool";
 			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
