@@ -42,6 +42,15 @@
 
 #include "spk-id.h"
 
+#ifdef TFA_NON_DSP_SOLUTION
+extern int send_tfa_cal_apr(void *buf, int cmd_size, bool bRead);
+#else
+static inline int send_tfa_cal_apr(void *buf, int cmd_size, bool bRead)
+{
+    return 0;
+}
+#endif
+
 #define TFA98XX_VERSION	TFA98XX_API_REV_STR
 
 #define I2C_RETRIES 50
@@ -742,6 +751,7 @@ static ssize_t tfa98xx_dbgfs_fw_state_get(struct file *file,
 	return simple_read_from_buffer(user_buf, count, ppos, str, strlen(str));
 }
 
+/* 删除或注释掉此处原有的块：
 #ifdef TFA_NON_DSP_SOLUTION
 extern int send_tfa_cal_apr(void *buf, int cmd_size, bool bRead);
 #else
@@ -750,6 +760,7 @@ int send_tfa_cal_apr(void *buf, int cmd_size, bool bRead)
     return 0;
 }
 #endif
+*/
 
 static ssize_t tfa98xx_dbgfs_rpc_read(struct file *file,
 				     char __user *user_buf, size_t count,
