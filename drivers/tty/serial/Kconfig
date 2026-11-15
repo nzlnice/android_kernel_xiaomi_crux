@@ -1124,6 +1124,15 @@ config SERIAL_MSM_GENI_CONSOLE
 	select SERIAL_CORE_CONSOLE
 	select SERIAL_EARLYCON
 
+config EARLYCON_RAMLOG
+	bool "Early RAM log console"
+	select SERIAL_EARLYCON
+	select SERIAL_CORE_CONSOLE
+	help
+	  Write early console output into a fixed reserved RAM buffer so it can
+	  be recovered after a boot loop that happens before pstore/ramoops.
+	  This is a debug feature and should not be enabled in production.
+
 config SERIAL_MSM_HS
 	tristate "MSM UART High Speed: Serial Driver"
 	depends on ARCH_QCOM
