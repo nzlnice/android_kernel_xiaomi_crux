@@ -1201,6 +1201,7 @@ static enum power_supply_property fg_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
+	POWER_SUPPLY_PROP_REAL_CAPACITY,
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 	POWER_SUPPLY_PROP_SOC_DECIMAL,
 	POWER_SUPPLY_PROP_SOC_DECIMAL_RATE,
@@ -1213,6 +1214,7 @@ static enum power_supply_property fg_props[] = {
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_RESISTANCE_ID,
 	POWER_SUPPLY_PROP_UPDATE_NOW,
+	POWER_SUPPLY_PROP_DEBUG_BATTERY,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_AUTHENTIC,
@@ -1279,6 +1281,13 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 		}
 		val->intval = fg_read_system_soc(bq);
 		bq->batt_soc = val->intval;
+		break;
+	case POWER_SUPPLY_PROP_REAL_CAPACITY:
+		/*
+		 * smb5 evaluates charge termination on REAL_CAPACITY; the
+		 * gauge only reports integer SOC, so map it 1:1.
+		 */
+		val->intval = fg_read_system_soc(bq);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
 		val->intval = fg_get_batt_capacity_level(bq);
@@ -1356,6 +1365,9 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 		val->intval = 100000;
 		break;
 	case POWER_SUPPLY_PROP_UPDATE_NOW:
+		val->intval = 0;
+		break;
+	case POWER_SUPPLY_PROP_DEBUG_BATTERY:
 		val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:

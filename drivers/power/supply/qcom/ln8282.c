@@ -962,6 +962,7 @@ static int ln8282_get_prop(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_DIV_2_MODE:
+	case POWER_SUPPLY_PROP_RESET_DIV_2_MODE:
 		val->intval = info->op_mode;
 		break;
 	default:

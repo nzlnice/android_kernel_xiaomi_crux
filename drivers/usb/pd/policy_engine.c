@@ -4284,7 +4284,7 @@ static ssize_t select_pdo_store(struct device *dev,
 	struct usbpd *pd = dev_get_drvdata(dev);
 	int src_cap_id;
 	int pdo, uv = 0, ua = 0;
-	int ret;
+	int ret = -EBUSY;
 
 	mutex_lock(&pd->swap_lock);
 
@@ -5132,7 +5132,7 @@ EXPORT_SYMBOL(usbpd_fetch_pdo);
 
 int usbpd_select_pdo(struct usbpd *pd, int pdo, int uv, int ua)
 {
-	int ret;
+	int ret = -EBUSY;
 
 	mutex_lock(&pd->swap_lock);
 

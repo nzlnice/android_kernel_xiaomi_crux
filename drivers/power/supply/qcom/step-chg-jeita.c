@@ -608,6 +608,26 @@ static int handle_step_chg_config(struct step_chg_info *chip)
 		rc = power_supply_get_property(chip->batt_psy,
 				chip->step_chg_config->param.psy_prop, &pval);
 
+	if (rc < 0 &&
+			chip->step_chg_config->param.psy_prop ==
+					POWER_SUPPLY_PROP_VOLTAGE_OCV) {
+		/*
+		 * crux uses the bq27z561 gauge, which does not implement
+		 * VOLTAGE_OCV.  Without a fallback the whole step-charging
+		 * state machine aborts on every status change with -EINVAL
+		 * and never applies its FCC/FV votes, so report the
+		 * instantaneous battery voltage instead.
+		 */
+		rc = power_supply_get_property(chip->bms_psy,
+				POWER_SUPPLY_PROP_VOLTAGE_NOW, &pval);
+		if (rc < 0)
+			rc = power_supply_get_property(chip->batt_psy,
+					POWER_SUPPLY_PROP_VOLTAGE_NOW,
+					&pval);
+		if (rc == 0)
+			pr_info_ratelimited("OCV unavailable, using VBAT for step charging\n");
+	}
+
 	if (rc < 0) {
 		pr_err("Couldn't read %s property rc=%d\n",
 			chip->step_chg_config->param.prop_name, rc);
@@ -741,7 +761,7 @@ update_time:
 static int handle_jeita(struct step_chg_info *chip)
 {
 	union power_supply_propval pval = {0, };
-	int rc = 0, fcc_ua = 0, fv_uv = 0;
+	int rc = 0, fcc_ua = 0, fv_uv = 0, batt_temp = 0;
 	u64 elapsed_us;
 
 	rc = power_supply_get_property(chip->batt_psy,
@@ -780,6 +800,7 @@ static int handle_jeita(struct step_chg_info *chip)
 				chip->jeita_fcc_config->param.prop_name, rc);
 		return rc;
 	}
+	batt_temp = pval.intval;
 
 	rc = get_val(chip->jeita_fcc_config->fcc_cfg,
 			chip->jeita_fcc_config->param.hysteresis,
@@ -829,14 +850,19 @@ static int handle_jeita(struct step_chg_info *chip)
 	 */
 	rc = power_supply_get_property(chip->batt_psy,
 				POWER_SUPPLY_PROP_VOLTAGE_MAX, &pval);
-	if (rc || (pval.intval == fv_uv)) {
+	/*
+	 * A negative value means no BATT_PROFILE_VOTER vote has been cast
+	 * yet (get_client_vote() returns -EINVAL), it is not a vfloat limit.
+	 */
+	if (rc || (pval.intval <= 0) || (pval.intval == fv_uv)) {
 		vote(chip->usb_icl_votable, JEITA_VOTER, false, 0);
 		vote(chip->dc_suspend_votable, JEITA_VOTER, 0, 0);
 		goto set_jeita_fv;
 	}
 
-	pr_info("%s = %d FCC = %duA FV = %duV\n",
-		chip->jeita_fcc_config->param.prop_name, pval.intval, fcc_ua, fv_uv);
+	pr_info("%s = %d FCC = %duA FV = %duV (vmax vote: %d)\n",
+		chip->jeita_fcc_config->param.prop_name, batt_temp, fcc_ua, fv_uv,
+		pval.intval);
 	/*
 	 * Suspend USB input path if battery voltage is above
 	 * JEITA VFLOAT threshold.

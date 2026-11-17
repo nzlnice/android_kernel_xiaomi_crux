@@ -5848,8 +5848,18 @@ int smblib_set_prop_pd_active(struct smb_charger *chg,
 	if (!chg->fake_usb_insertion)
 		smblib_update_usb_type(chg);
 
-	smblib_usb_pd_adapter_allowance_override(chg,
-			!!chg->pd_active ? FORCE_5V : FORCE_NULL);
+	/*
+	 * A PPS contract must keep the continuous VBUS allowance that
+	 * smblib_set_usb_pd_allowed_voltage() programmed for the APDO.
+	 * Forcing FORCE_5V here pins VBUS at 5 V, so the charge pump never
+	 * sees the high-voltage PPS contract and Xiaomi 40 W charging stays
+	 * at 5 V / 3 A.
+	 */
+	if (chg->pd_active == POWER_SUPPLY_PD_PPS_ACTIVE)
+		smblib_usb_pd_adapter_allowance_override(chg, CONTINUOUS);
+	else
+		smblib_usb_pd_adapter_allowance_override(chg,
+				!!chg->pd_active ? FORCE_5V : FORCE_NULL);
 	smblib_update_usb_type(chg);
 
 #ifdef CONFIG_THERMAL
