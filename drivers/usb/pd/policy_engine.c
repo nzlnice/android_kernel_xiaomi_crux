@@ -888,6 +888,17 @@ static int pd_select_pdo(struct usbpd *pd, int pdo_pos, int uv, int ua)
 			return -EINVAL;
 		}
 
+		/*
+		 * crux: keep the PPS contract inside 9.2 V / 4 A.  Higher
+		 * requests (the Xiaomi loop asks for up to 9.9 V / 6.2 A)
+		 * push the 40 W adapter into protection, which then hard
+		 * resets the link and drops charging back to 5 V.
+		 */
+		if (uv > 9200000)
+			uv = 9200000;
+		if (ua > 4000000)
+			ua = 4000000;
+
 		/* use xiaomi pps control state machine */
 		if (pd->non_qcom_pps_ctr) {
 			usbpd_err(&pd->dev,
@@ -4321,6 +4332,21 @@ static ssize_t select_pdo_store(struct device *dev,
 	if (pdo < 1 || pdo > 7) {
 		usbpd_err(&pd->dev, "select_pdo: invalid PDO:%d\n", pdo);
 		ret = -EINVAL;
+		goto out;
+	}
+
+	/*
+	 * crux: while a verified PPS contract is active, ignore requests
+	 * that ask for a plain fixed PDO (uv/ua both zero).  The Xiaomi
+	 * battery policy issues those as a fallback every couple of
+	 * minutes, which collapses charging to 5 V/3 A even though the
+	 * adapter and the charge pumps are happy at 9 V.
+	 */
+	if (uv == 0 && ua == 0 && pd->verifed &&
+			pd->current_voltage >= 6000000) {
+		usbpd_info(&pd->dev,
+			"select_pdo: keep PPS contract, ignore fixed PDO fallback\n");
+		ret = 0;
 		goto out;
 	}
 
