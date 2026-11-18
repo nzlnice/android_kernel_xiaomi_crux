@@ -1138,8 +1138,14 @@ static void smb1390_status_change_work(struct work_struct *work)
 		} else {
 			vote(chip->ilim_votable, WIRELESS_VOTER, false, 0);
 			vote(chip->slave_disable_votable, SLAVE_HVDCP3_ILIM_VOTER, false, 0);
-			if ((chip->pl_output_mode == POWER_SUPPLY_PL_OUTPUT_VPH)
-				&& (pval.intval == POWER_SUPPLY_CP_PPS)) {
+			/*
+			 * For a PPS contract the CP input limit must follow the
+			 * negotiated PD current.  Tying it to the VBAT/VPH
+			 * output topology leaves it at the AICL settled value
+			 * of the (idle) main charger, which collapses ILIM to
+			 * ~0.9 A and the PPS path to ~2 A.
+			 */
+			if (pval.intval == POWER_SUPPLY_CP_PPS) {
 				rc = power_supply_get_property(chip->usb_psy,
 					POWER_SUPPLY_PROP_PD_CURRENT_MAX,
 					&pval);
