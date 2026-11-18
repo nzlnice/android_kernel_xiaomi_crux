@@ -1992,15 +1992,7 @@ int qcom_batt_init(struct charger_param *chg_param)
 	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
-	/*
-	 * crux routes the parallel charging path through the SMB1390
-	 * charge pump.  The legacy 50/50 main/slave split leaves the
-	 * charge pump with only half of the settled input current and
-	 * caps PPS fast charging at ~24 W.  Give the parallel path the
-	 * full settled share; it is split back if no parallel charger is
-	 * present.
-	 */
-	chip->slave_pct = 100;
+	chip->slave_pct = 50;
 	chip->chg_param = chg_param;
 	pl_config_init(chip, chg_param->smb_version);
 	chip->restricted_current = DEFAULT_RESTRICTED_CURRENT_UA;
