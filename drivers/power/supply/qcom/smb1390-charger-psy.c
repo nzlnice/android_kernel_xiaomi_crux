@@ -1830,6 +1830,16 @@ static void smb1390_create_debugfs(struct smb1390 *chip)
 #endif
 
 static const struct of_device_id match_table[] = {
+	/*
+	 * The upstream SMB1390 charge-pump node uses "qcom,smb1390-charger"
+	 * and relies on CONFIG_SMB1390_CHARGE_PUMP to bind it.  crux builds
+	 * the power-supply based driver instead, so map that compatible to
+	 * the master role here; otherwise the master CP never probes and
+	 * there is no charge_pump_master psy / CP_ILIM votable at all.
+	 */
+	{ .compatible = "qcom,smb1390-charger",
+	  .data = (void *)CP_MASTER
+	},
 	{ .compatible = "qcom,smb1390-charger-psy",
 	  .data = (void *)CP_MASTER
 	},
