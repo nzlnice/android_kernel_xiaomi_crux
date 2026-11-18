@@ -51,6 +51,15 @@ struct sugov_policy {
 	unsigned long hispeed_util;
 	unsigned long max;
 
+	/*
+	 * DVFS headroom tracking: the utilisation seen in the previous
+	 * update, plus the capacity of this cluster and of the biggest
+	 * cluster in the system.
+	 */
+	unsigned long prev_util;
+	unsigned long cluster_cap;
+	unsigned long max_cap;
+
 	/* The next fields are only needed if fast switch cannot be used. */
 	struct irq_work irq_work;
 	struct kthread_work work;
@@ -287,9 +296,41 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	struct cpufreq_policy *policy = sg_policy->policy;
 	unsigned int freq = arch_scale_freq_invariant() ?
 				policy->cpuinfo.max_freq : policy->cur;
+	unsigned long util_pred = util;
+	unsigned int headroom = 125;
+	unsigned long next;
 
-	freq = (freq + (freq >> 2)) * util / max;
-	trace_sugov_next_freq(policy->cpu, util, max, freq);
+	/*
+	 * Follow the utilisation slope: PELT only reports a task ramp one
+	 * or two windows after it starts, so add part of the observed
+	 * increase as soon as it is detected.  Only do this in the low and
+	 * mid utilisation range; an already busy CPU must not be pushed
+	 * even further.
+	 */
+	if (util > sg_policy->prev_util) {
+		unsigned long delta = util - sg_policy->prev_util;
+
+		if (util > max / 4 && util < (max * 3) / 4)
+			util_pred = util + min(delta, max / 10);
+	}
+	sg_policy->prev_util = util;
+
+	/*
+	 * Suppress the headroom when there is almost nothing to run, and
+	 * give the small-capacity clusters a little more headroom to
+	 * absorb their longer ramp-up.
+	 */
+	if (util_pred < max / 8) {
+		headroom = 105;
+	} else if (sg_policy->max_cap && sg_policy->cluster_cap &&
+			sg_policy->cluster_cap < sg_policy->max_cap) {
+		headroom += (sg_policy->max_cap - sg_policy->cluster_cap) *
+				10 / sg_policy->max_cap;
+	}
+
+	next = (unsigned long)freq * headroom * util_pred / (100UL * max);
+	freq = next;
+	trace_sugov_next_freq(policy->cpu, util_pred, max, freq);
 
 	if (freq == sg_policy->cached_raw_freq && sg_policy->next_freq != UINT_MAX)
 		return sg_policy->next_freq;
@@ -800,12 +841,18 @@ static struct cpufreq_governor schedutil_gov;
 static struct sugov_policy *sugov_policy_alloc(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy;
+	int cpu;
 
 	sg_policy = kzalloc(sizeof(*sg_policy), GFP_KERNEL);
 	if (!sg_policy)
 		return NULL;
 
 	sg_policy->policy = policy;
+	sg_policy->cluster_cap = arch_scale_cpu_capacity(NULL,
+					cpumask_first(policy->related_cpus));
+	for_each_possible_cpu(cpu)
+		sg_policy->max_cap = max(sg_policy->max_cap,
+					arch_scale_cpu_capacity(NULL, cpu));
 	raw_spin_lock_init(&sg_policy->update_lock);
 	return sg_policy;
 }
