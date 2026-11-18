@@ -497,6 +497,12 @@ struct usbpd {
 	/* non-qcom pps control */
 	bool		non_qcom_pps_ctr;
 
+	/* last select_pdo request, used to drop back-to-back duplicates */
+	unsigned long	last_sel_jiffies;
+	int		last_sel_pdo;
+	int		last_sel_uv;
+	int		last_sel_ua;
+
 	/* ext msg support */
 	bool			send_get_src_cap_ext;
 	u8			src_cap_ext_db[PD_SRC_CAP_EXT_DB_LEN];
@@ -4317,6 +4323,27 @@ static ssize_t select_pdo_store(struct device *dev,
 		ret = -EINVAL;
 		goto out;
 	}
+
+	/*
+	 * Userspace PPS loops can issue the very same request every few
+	 * tens of milliseconds.  Re-sending identical RDOs back to back
+	 * floods the PD TX path ("Error sending Request/Soft_Reset") and
+	 * has been observed to make the adapter issue a hard reset, after
+	 * which the re-verification races and the port falls back to
+	 * 5 V/3 A.  Drop identical duplicates that arrive within 120 ms.
+	 */
+	if (pdo == pd->last_sel_pdo && uv == pd->last_sel_uv &&
+			ua == pd->last_sel_ua &&
+			time_before(jiffies, pd->last_sel_jiffies +
+				msecs_to_jiffies(120))) {
+		ret = 0;
+		goto out;
+	}
+
+	pd->last_sel_pdo = pdo;
+	pd->last_sel_uv = uv;
+	pd->last_sel_ua = ua;
+	pd->last_sel_jiffies = jiffies;
 
 	pr_info("request pdo: %d, uv: %d, ua: %d\n", pdo, uv, ua);
 	ret = pd_select_pdo(pd, pdo, uv, ua);
