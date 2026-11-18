@@ -1397,7 +1397,15 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 		if (bq->constant_charge_current_max != 0)
 			val->intval = bq->constant_charge_current_max;
 		else
-			val->intval = fg_read_charging_current(bq);
+			/*
+			 * fg_read_charging_current() returns the raw gauge
+			 * register in mA while this property is in uA.  Without
+			 * the conversion the SMB1390 CC-mode taper loop sees
+			 * curr_max = ~3000 uA, always reports "curr is too
+			 * high" and keeps stepping FCC down, which is what
+			 * pins PPS charging around 2-3 A.
+			 */
+			val->intval = fg_read_charging_current(bq) * 1000;
 		break;
 	case POWER_SUPPLY_PROP_FASTCHARGE_MODE:
 		if (bq->old_hw) {
