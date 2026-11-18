@@ -5365,7 +5365,7 @@ static void smblib_set_cp_ilim(struct smb_charger *chg, int ilim_ua)
 	if (!chg->cp_psy)
 		chg->cp_psy = power_supply_get_by_name("charge_pump_master");
 
-	if (!chg->cp_psy)
+	if (!chg->cp_psy || ilim_ua <= 0)
 		return;
 
 	power_supply_set_property(chg->cp_psy,
@@ -5391,7 +5391,8 @@ int smblib_set_prop_pd_current_max(struct smb_charger *chg,
 		 * charger.  Otherwise the CP driver settles around 0.9 A and
 		 * the PPS contract collapses to ~7 V / 3 A.
 		 */
-		if (chg->pd_active == POWER_SUPPLY_PD_PPS_ACTIVE)
+		if (chg->pd_active == POWER_SUPPLY_PD_PPS_ACTIVE &&
+				val->intval > 0)
 			smblib_set_cp_ilim(chg,
 				min(val->intval, CP_PPS_MAX_ILIM_UA));
 	} else {
