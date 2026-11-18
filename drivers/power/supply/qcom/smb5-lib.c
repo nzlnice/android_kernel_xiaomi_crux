@@ -5358,6 +5358,21 @@ static int get_rp_based_dcp_current(struct smb_charger *chg, int typec_mode)
  * USB PSY SETTERS *
  * *****************/
 
+static void smblib_set_cp_ilim(struct smb_charger *chg, int ilim_ua)
+{
+	union power_supply_propval pval = { .intval = ilim_ua, };
+
+	if (!chg->cp_psy)
+		chg->cp_psy = power_supply_get_by_name("charge_pump_master");
+
+	if (!chg->cp_psy)
+		return;
+
+	power_supply_set_property(chg->cp_psy,
+			POWER_SUPPLY_PROP_CP_ILIM, &pval);
+}
+
+#define CP_PPS_MAX_ILIM_UA	4000000
 int smblib_set_prop_pd_current_max(struct smb_charger *chg,
 				    const union power_supply_propval *val)
 {
@@ -5368,6 +5383,17 @@ int smblib_set_prop_pd_current_max(struct smb_charger *chg,
 		rc = vote(chg->usb_icl_votable, PD_VOTER, true, val->intval);
 		if (val->intval != icl)
 			power_supply_changed(chg->usb_psy);
+
+		/*
+		 * For a PPS contract the charge pump is the main charging
+		 * path and its input limit must follow the PD current, not
+		 * the (much lower) AICL result of the now mostly idle main
+		 * charger.  Otherwise the CP driver settles around 0.9 A and
+		 * the PPS contract collapses to ~7 V / 3 A.
+		 */
+		if (chg->pd_active == POWER_SUPPLY_PD_PPS_ACTIVE)
+			smblib_set_cp_ilim(chg,
+				min(val->intval, CP_PPS_MAX_ILIM_UA));
 	} else {
 		rc = -EPERM;
 	}
