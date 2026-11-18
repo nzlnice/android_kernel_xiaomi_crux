@@ -2473,6 +2473,7 @@ static enum power_supply_property smb5_batt_props[] = {
 	POWER_SUPPLY_PROP_CHARGING_ENABLED,
 	POWER_SUPPLY_PROP_DC_THERMAL_LEVELS,
  	POWER_SUPPLY_PROP_CHARGING_ENABLED,
+	POWER_SUPPLY_PROP_NIGHT_CHARGING,
 };
 
 #define DEBUG_ACCESSORY_TEMP_DECIDEGC	250
@@ -2639,6 +2640,9 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 		rc = smblib_get_prop_battery_charging_enabled(chg, val);
 		break;
+	case POWER_SUPPLY_PROP_NIGHT_CHARGING:
+		val->intval = chg->night_charging;
+		break;
 	default:
 		pr_err("batt power supply prop %d not supported\n", psp);
 		return -EINVAL;
@@ -2751,6 +2755,9 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE:
 		chg->fcc_stepper_enable = val->intval;
 		break;
+	case POWER_SUPPLY_PROP_NIGHT_CHARGING:
+		chg->night_charging = !!val->intval;
+		break;
 	default:
 		rc = -EINVAL;
 	} // 修复点：确保大括号正常关掉 switch
@@ -2777,7 +2784,8 @@ static int smb5_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_DYNAMIC_FV_ENABLED:
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_FORCE_RECHARGE:
- 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+	case POWER_SUPPLY_PROP_NIGHT_CHARGING:
 		return 1;
 	default:
 		break;

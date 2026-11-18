@@ -611,6 +611,7 @@ struct smb_charger {
 	bool			init_once;
 	bool			support_liquid;
 	bool			dynamic_fv_enabled;
+	bool			night_charging;
 	bool			batt_verified;
 
 	/* locks */

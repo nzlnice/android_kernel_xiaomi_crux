@@ -584,6 +584,7 @@ static struct device_attribute power_supply_attrs[] = {
 	
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_ATTR(charge_counter_ext),
+	POWER_SUPPLY_ATTR(night_charging),
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
