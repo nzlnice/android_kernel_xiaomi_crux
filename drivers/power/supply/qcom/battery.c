@@ -194,7 +194,7 @@ static int cp_get_parallel_mode(struct pl_data *chip, int mode)
 	}
 
 	if (rc < 0)
-		pr_err("Failed to read CP topology for mode=%d rc=%d\n",
+		pr_err_ratelimited("Failed to read CP topology for mode=%d rc=%d\n",
 				mode, rc);
 
 	return pval.intval;

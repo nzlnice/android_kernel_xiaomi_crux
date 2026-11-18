@@ -2097,7 +2097,12 @@ static int smb1390_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	chip->debug_mask = PR_INFO | PR_INTERRUPT;
+	/*
+	 * Keep only interrupt logging: PR_INFO logs the charge-pump ISNS
+	 * every poll (10+ lines/s), which keeps printk busy and wakes the
+	 * CPU for no benefit.
+	 */
+	chip->debug_mask = PR_INTERRUPT;
 
 	platform_set_drvdata(pdev, chip);
 	chip->cp_role = (int)of_device_get_match_data(chip->dev);
