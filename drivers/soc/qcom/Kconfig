@@ -1102,4 +1102,12 @@ config RENAME_BLOCK_DEVICE
 	  This driver is used to rename the block device node assigned by generic driver
 	  to a name that is needed.
 
+config EARLY_RAMLOG
+	bool "Early RAM log reader"
+	depends on PROC_FS
+	help
+	  Expose the buffer written by the earlycon ramlog driver as
+	  /proc/early_ramlog.  This lets a recovery/TWRP kernel export the
+	  previous boot's early console output.
+
 source "drivers/soc/qcom/wcnss/Kconfig"
