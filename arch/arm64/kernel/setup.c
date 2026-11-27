@@ -20,12 +20,14 @@
 #include <linux/acpi.h>
 #include <linux/export.h>
 #include <linux/kernel.h>
+#include <linux/string.h>
 #include <linux/stddef.h>
 #include <linux/ioport.h>
 #include <linux/delay.h>
 #include <linux/utsname.h>
 #include <linux/initrd.h>
 #include <linux/console.h>
+#include <linux/serial_core.h>
 #include <linux/cache.h>
 #include <linux/bootmem.h>
 #include <linux/screen_info.h>
@@ -370,6 +372,16 @@ void __init setup_arch(char **cmdline_p)
 	 */
 	jump_label_init();
 	parse_early_param();
+
+#ifdef CONFIG_EARLYCON_RAMLOG
+	/*
+	 * The boot image's cmdline is not always propagated by the
+	 * bootloader.  Force the RAM early console unless the recovery
+	 * image explicitly asks to preserve the previous boot's buffer.
+	 */
+	if (!strstr(boot_command_line, "noramlog"))
+		setup_earlycon("ramlog");
+#endif
 
 	/*
 	 *  Unmask asynchronous aborts after bringing up possible earlycon.
