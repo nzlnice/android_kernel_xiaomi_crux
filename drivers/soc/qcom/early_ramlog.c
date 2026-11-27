@@ -13,8 +13,8 @@
 #include <linux/seq_file.h>
 #include <linux/sizes.h>
 
-#define RAMLOG_PHYS		0x146bfa20UL
-#define RAMLOG_SIZE		0x5e0
+#define RAMLOG_PHYS		0x9fe00000UL
+#define RAMLOG_SIZE		SZ_256K
 #define RAMLOG_MAGIC		0x474c5245	/* "ERLG" */
 
 struct ramlog_hdr {
